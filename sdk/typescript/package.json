@@ -1,0 +1,16 @@
+{
+  "name": "@evalkit/sdk",
+  "version": "0.1.0",
+  "description": "EvalKit TypeScript SDK for non-blocking LLM application trace ingestion",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": ["evalkit", "llm", "tracing", "evals"],
+  "author": "EvalKit",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

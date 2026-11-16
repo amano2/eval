@@ -1,0 +1,37 @@
+name: EvalKit CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn sqlalchemy pydantic httpx pytest pytest-asyncio jsonschema python-dotenv requests
+
+      - name: Run Test Suite
+        run: |
+          pytest backend/tests/ -v
+
+      - name: Seed Golden Benchmark
+        run: |
+          python -m backend.app.db.seed
+          python -m examples.sample_app.seed_dataset
+
+      - name: Execute Level-1 Release Gate
+        run: |
+          python backend/cli.py run --dataset sample_golden_suite --level 1 --executor fake
+          python backend/cli.py gate --run-id latest

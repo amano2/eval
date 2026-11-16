@@ -1,0 +1,26 @@
+# Secrets and local environments
+.env
+*.env.local
+*.env.*
+!.env.example
+
+# Databases and payloads
+*.db
+*.sqlite
+storage/
+exports/
+
+# Python cache & test artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Ignore sensitive internal documentation and specs
+docs/
+files/
+
+# Allow only public README.md and GEMINI.md
+*.md
+**/*.md
+!README.md
+!GEMINI.md
