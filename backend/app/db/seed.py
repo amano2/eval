@@ -1,7 +1,7 @@
 """Seed script for EvalKit with default project, user, API key, tags, and prompts."""
 
 import hashlib
-from backend.app.db.session import get_db_context
+from backend.app.db.session import init_db, get_db_context
 from backend.app.db.models import (
     User, Project, ProjectMember, ApiKey, FailureTag, PromptVersion
 )
@@ -13,6 +13,7 @@ def hash_key(key: str) -> str:
 
 def seed_database() -> dict:
     """Populates the database with initial development & testing records."""
+    init_db()
     with get_db_context() as db:
         # 1. Default User
         user = db.query(User).filter(User.email == "admin@evalkit.local").first()
