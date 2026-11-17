@@ -25,6 +25,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install fastapi uvicorn sqlalchemy pydantic httpx pytest pytest-asyncio jsonschema python-dotenv requests supabase
 
+      - name: Initialize Database Schema
+        run: |
+          python -c "from backend.app.db.session import init_db; init_db()"
+
       - name: Run Test Suite
         run: |
           pytest backend/tests/ -v
