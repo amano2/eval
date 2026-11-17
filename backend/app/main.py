@@ -1,5 +1,6 @@
 """FastAPI Application for EvalKit."""
 
+import os
 import hashlib
 import json
 from typing import Any, Dict, List, Optional
@@ -429,8 +430,16 @@ def export_finetune_api(payload: Dict[str, Any]):
     return export_finetune_data(project_id, path)
 
 
-# --- INTERACTIVE WEB CONSOLE ---
+# --- INTERACTIVE WEB CONSOLE & PRESENTATION LANDING PAGE ---
 @app.get("/", response_class=HTMLResponse)
+def serve_landing_page():
+    landing_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "index.html")
+    if os.path.exists(landing_path):
+        with open(landing_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return serve_console()
+
+
 @app.get("/console", response_class=HTMLResponse)
 def serve_console():
     return """<!DOCTYPE html>
@@ -450,10 +459,15 @@ def serve_console():
   <!-- Sidebar Navigation -->
   <aside class="w-64 bg-gray-950 border-r border-gray-800 flex flex-col justify-between">
     <div>
-      <div class="p-4 border-b border-gray-800 flex items-center space-x-2">
-        <i class="fa-solid fa-chart-line text-blue-500 text-xl"></i>
-        <span class="font-bold text-lg tracking-wide">EvalKit</span>
-        <span class="bg-blue-900 text-blue-300 text-xs px-2 py-0.5 rounded font-mono">v0.1</span>
+      <div class="p-4 border-b border-gray-800 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-chart-line text-blue-500 text-xl"></i>
+          <span class="font-bold text-lg tracking-wide">EvalKit</span>
+          <span class="bg-blue-900 text-blue-300 text-xs px-2 py-0.5 rounded font-mono">v0.1</span>
+        </div>
+        <a href="/" class="text-xs text-blue-400 hover:text-blue-300 flex items-center space-x-1" title="Back to Project Landing Page">
+          <i class="fa-solid fa-home"></i>
+        </a>
       </div>
       <nav class="p-4 space-y-1">
         <button onclick="switchTab('traces')" id="nav-traces" class="w-full text-left px-3 py-2 rounded flex items-center space-x-3 bg-gray-800 text-white font-medium">
