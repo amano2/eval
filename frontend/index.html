@@ -100,7 +100,6 @@
         <a href="#hero-simulation" class="hover:text-cyan-400 transition-colors">Live Simulation</a>
         <a href="#pyramid" class="hover:text-cyan-400 transition-colors">3-Level Pyramid</a>
         <a href="#architecture" class="hover:text-cyan-400 transition-colors">System Architecture</a>
-        <a href="#interview-qa" class="hover:text-cyan-400 transition-colors">Interview Defense</a>
         <a href="#cli-ref" class="hover:text-cyan-400 transition-colors">CLI & Code</a>
       </nav>
 
@@ -183,10 +182,6 @@
             <a href="/console" class="inline-flex items-center space-x-2 bg-surface-raised hover:bg-surface-highlight text-white text-sm font-semibold border border-surface-border px-5 py-2.5 rounded-lg transition-all">
               <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-400"></i>
               <span>Open Review UI</span>
-            </a>
-            <a href="#interview-qa" class="inline-flex items-center space-x-1.5 text-xs text-slate-400 hover:text-white px-3 py-2 font-mono">
-              <i class="fa-solid fa-circle-question text-cyan-400"></i>
-              <span>Review Q&A Prep &rarr;</span>
             </a>
           </div>
 
@@ -517,95 +512,6 @@
     </div>
   </section>
 
-  <!-- Interviewer Defense & Toughest Q&A Section -->
-  <section id="interview-qa" class="py-20 border-b border-surface-border/40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      
-      <div class="max-w-3xl mb-12">
-        <div class="inline-flex items-center space-x-2 text-xs font-mono text-cyan-400 uppercase tracking-wider mb-2">
-          <span>// INTERVIEW READINESS & DEFENSE</span>
-        </div>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          How to Defend This Project in the Interview
-        </h2>
-        <p class="text-slate-400 text-sm sm:text-base mt-2">
-          Senior interviewers probe for architectural justification, metric integrity, and failure modes. Click any question below to see the exact defense and rationale.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        
-        <!-- QA Card 1 -->
-        <div class="bg-surface rounded-xl border border-surface-border p-5 hover:border-cyan-500/30 transition-colors">
-          <div class="flex items-center space-x-2 font-bold text-white text-sm mb-2">
-            <span class="text-cyan-400 font-mono">Q1:</span>
-            <span>Why build a custom eval platform instead of using LangSmith or Phoenix?</span>
-          </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            <strong class="text-cyan-300">Defense:</strong> General APM platforms focus on post-hoc observability rather than CI/CD release gating. EvalKit is built for the developer loop: Level-1 assertions run locally in seconds, <code class="text-slate-300">evalkit gate</code> halts PR merges on prompt regressions, and the keyboard review console reduces time-to-label to under 15 seconds.
-          </p>
-        </div>
-
-        <!-- QA Card 2 -->
-        <div class="bg-surface rounded-xl border border-surface-border p-5 hover:border-indigo-500/30 transition-colors">
-          <div class="flex items-center space-x-2 font-bold text-white text-sm mb-2">
-            <span class="text-indigo-400 font-mono">Q2:</span>
-            <span>Why binary labels (Good/Bad) instead of 1-5 Likert rating scales?</span>
-          </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            <strong class="text-indigo-300">Defense:</strong> 1-5 scales introduce massive inter-annotator noise—one reviewer's 4 is another's 3, creating an ambiguous training target. Binary labels achieve higher consensus, reduce cognitive fatigue, and pair with a mandatory 1-line critique to provide actionable supervised fine-tuning data.
-          </p>
-        </div>
-
-        <!-- QA Card 3 -->
-        <div class="bg-surface rounded-xl border border-surface-border p-5 hover:border-emerald-500/30 transition-colors">
-          <div class="flex items-center space-x-2 font-bold text-white text-sm mb-2">
-            <span class="text-emerald-400 font-mono">Q3:</span>
-            <span>Why measure Precision & Recall on 'Bad' rather than raw % agreement?</span>
-          </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            <strong class="text-emerald-300">Defense:</strong> Production LLM traces have severe class imbalance (~95% good, ~5% bad). A broken judge that outputs "Good" for everything achieves 95% raw agreement while missing 100% of hallucinations. Treating 'Bad' (defects) as the positive class exposes false negatives and guarantees safety.
-          </p>
-        </div>
-
-        <!-- QA Card 4 -->
-        <div class="bg-surface rounded-xl border border-surface-border p-5 hover:border-amber-500/30 transition-colors">
-          <div class="flex items-center space-x-2 font-bold text-white text-sm mb-2">
-            <span class="text-amber-400 font-mono">Q4:</span>
-            <span>How do you guarantee the SDK won't crash or slow down the host app?</span>
-          </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            <strong class="text-amber-300">Defense:</strong> All span instrumentation appends to an in-memory queue flushed by a background daemon thread. No network calls block the main thread. If EvalKit is completely dead, drops are counted and execution proceeds safely. Proven in <code class="text-slate-300">test_sdk_server_down_failure_injection</code>.
-          </p>
-        </div>
-
-        <!-- QA Card 5 -->
-        <div class="bg-surface rounded-xl border border-surface-border p-5 hover:border-cyan-500/30 transition-colors">
-          <div class="flex items-center space-x-2 font-bold text-white text-sm mb-2">
-            <span class="text-cyan-400 font-mono">Q5:</span>
-            <span>What are the system limitations and what would you build in v2?</span>
-          </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            <strong class="text-cyan-300">Defense:</strong> Current limitations are cold-start judge data (needs 50 human labels before gating) and regex-based assertion brittleness. In v2, I would implement paired bootstrap confidence intervals (McNemar's test) and edge-model classifiers (DeBERTa) for semantic assertions.
-          </p>
-        </div>
-
-        <!-- QA Card 6 -->
-        <div class="bg-surface rounded-xl border border-surface-border p-5 hover:border-crimson-500/30 transition-colors">
-          <div class="flex items-center space-x-2 font-bold text-white text-sm mb-2">
-            <span class="text-crimson-400 font-mono">Q6:</span>
-            <span>How do you prevent data contamination in judge evaluation?</span>
-          </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            <strong class="text-crimson-300">Defense:</strong> We enforce strict separation between prompt-calibration cases and test cases using a <code class="text-slate-300">holdout</code> boolean flag in the Dataset schema. Examples selected as few-shot demonstrations for the judge prompt are barred from alignment reporting.
-          </p>
-        </div>
-
-      </div>
-
-    </div>
-  </section>
-
   <!-- CLI Reference & Verification Commands -->
   <section id="cli-ref" class="py-20 border-b border-surface-border/40 bg-surface/30">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -679,7 +585,7 @@
         <a href="/console" class="text-cyan-400 hover:underline font-semibold">Review Console</a>
         <a href="#hero-simulation" class="hover:text-slate-300">Simulator</a>
         <a href="#architecture" class="hover:text-slate-300">Architecture</a>
-        <a href="#interview-qa" class="hover:text-slate-300">Interview Defense</a>
+        <a href="#cli-ref" class="hover:text-slate-300">CLI & Code</a>
       </div>
     </div>
   </footer>
