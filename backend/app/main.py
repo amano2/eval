@@ -303,6 +303,100 @@ def add_human_label(trace_id: str, payload: Dict[str, Any], db: Session = Depend
     return {"status": "ok", "label_id": hl.id}
 
 
+@app.post("/api/traces/seed_demo")
+def seed_demo_traces_endpoint(db: Session = Depends(get_db)):
+    import uuid
+    from decimal import Decimal
+    from datetime import datetime, timezone
+
+    samples = [
+        {
+            "feature": "qa",
+            "scenario": "answer_in_docs",
+            "input": {"query": "How does the Level-1 evaluation gate work in CI?"},
+            "output": {"answer": "Level-1 assertions run as deterministic unit tests in CI. If pass rate falls below threshold, evalkit gate terminates with exit code 1 to block PR merges [1].", "citations": [1]},
+            "latency_ms": 114,
+            "cost_usd": 0.0006,
+            "spans": [
+                {"name": "retrieve_docs", "kind": "retrieval", "status": "ok", "input": {"q": "Level-1 gate"}, "output": {"count": 1}},
+                {"name": "llm_generate", "kind": "model", "status": "ok", "input": {}, "output": "Level-1 assertions [1]"}
+            ]
+        },
+        {
+            "feature": "qa",
+            "scenario": "answer_not_in_docs",
+            "input": {"query": "Can you book a flight ticket to London for tomorrow morning?"},
+            "output": {"answer": "I cannot help with booking flights. The requested service cannot be found in the provided documentation.", "citations": []},
+            "latency_ms": 85,
+            "cost_usd": 0.0003,
+            "spans": [
+                {"name": "retrieve_docs", "kind": "retrieval", "status": "ok", "input": {}, "output": {"count": 0}},
+                {"name": "llm_generate", "kind": "model", "status": "ok", "input": {}, "output": "Cannot answer"}
+            ]
+        },
+        {
+            "feature": "qa",
+            "scenario": "regressed_prompt",
+            "input": {"query": "Summarize the customer refund policy."},
+            "output": {"answer": "Refunds are processed when requested.", "citations": []},
+            "latency_ms": 118,
+            "cost_usd": 0.0006,
+            "status": "error",
+            "error": "AssertionFailed: has_citation missing bracketed markers [1]",
+            "spans": [
+                {"name": "retrieve_docs", "kind": "retrieval", "status": "ok", "input": {}, "output": {"count": 1}},
+                {"name": "llm_generate", "kind": "model", "status": "ok", "input": {}, "output": "Missing citations"},
+                {"name": "guard_has_citation", "kind": "assertion", "status": "error", "error": "No citations found", "input": {}, "output": "FAIL"}
+            ]
+        }
+    ]
+
+    prj = db.query(Project).filter(Project.id == "prj-default-001").first()
+    if not prj:
+        prj = Project(id="prj-default-001", name="default")
+        db.add(prj)
+        db.flush()
+
+    created = 0
+    now = datetime.now(timezone.utc)
+    for s in samples:
+        tid = f"tr-demo-{uuid.uuid4().hex[:8]}"
+        t = Trace(
+            id=tid,
+            project_id=prj.id,
+            external_id=f"ext-{tid}",
+            feature=s["feature"],
+            scenario=s["scenario"],
+            origin="real",
+            tags=[s["feature"], s["scenario"], "demo"],
+            input=s["input"],
+            output=s["output"],
+            model="mock-llm-v1",
+            status=s.get("status", "ok"),
+            error=s.get("error"),
+            latency_ms=s["latency_ms"],
+            cost_usd=Decimal(str(s["cost_usd"])),
+            started_at=now,
+            ingested_at=now
+        )
+        db.add(t)
+        db.flush()
+        for sp in s.get("spans", []):
+            db.add(Span(
+                id=f"sp-{uuid.uuid4().hex[:8]}",
+                trace_id=t.id,
+                kind=sp.get("kind", "other"),
+                name=sp["name"],
+                input=sp.get("input"),
+                output=sp.get("output"),
+                status=sp.get("status", "ok"),
+                error=sp.get("error")
+            ))
+        created += 1
+    db.commit()
+    return {"status": "ok", "seeded_count": created}
+
+
 @app.post("/api/traces/{trace_id}/add_to_dataset")
 def add_trace_to_dataset_endpoint(trace_id: str, payload: Dict[str, Any]):
     dataset_id = payload.get("dataset_id")
@@ -517,12 +611,16 @@ def serve_console():
         <!-- Trace Queue Column -->
         <div class="w-80 border-r border-gray-800 flex flex-col bg-gray-950">
           <div class="p-3 border-b border-gray-800">
-            <select id="queue-select" onchange="loadTraces()" class="w-full bg-gray-800 text-xs text-gray-200 rounded p-2 border border-gray-700 focus:outline-none">
+            <select id="queue-select" onchange="currentTraceIdx=-1; loadTraces();" class="w-full bg-gray-800 text-xs text-gray-200 rounded p-2 border border-gray-700 focus:outline-none">
               <option value="unlabelled">Queue: Unlabelled Traces</option>
               <option value="failed_assertions">Queue: Failed Assertions</option>
               <option value="low_rating">Queue: Low Rating</option>
               <option value="all">Queue: All Traces</option>
             </select>
+            <button onclick="seedDemoTraces()" class="mt-2 w-full bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-700/50 rounded py-1.5 text-xs font-mono flex items-center justify-center space-x-1.5 transition-colors">
+              <i class="fa-solid fa-plus text-[10px]"></i>
+              <span>Inject Demo Traces</span>
+            </button>
           </div>
           <div id="trace-list" class="flex-1 overflow-y-auto divide-y divide-gray-800 text-xs">
             <div class="p-4 text-gray-500 text-center">Loading traces...</div>
@@ -605,6 +703,15 @@ def serve_console():
       if (tab === 'gates') loadGates();
     }
 
+    async function seedDemoTraces() {
+      const res = await fetch('/api/traces/seed_demo', { method: 'POST' });
+      if (res.ok) {
+        showToast('Injected fresh demo traces into queue!');
+        currentTraceIdx = -1;
+        loadTraces();
+      }
+    }
+
     async function loadTraces() {
       const q = document.getElementById('queue-select').value;
       const res = await fetch(`/api/traces?queue=${q}`);
@@ -612,10 +719,28 @@ def serve_console():
       activeTraces = data.traces || [];
       const listEl = document.getElementById('trace-list');
       if (activeTraces.length === 0) {
-        listEl.innerHTML = '<div class="p-4 text-gray-500 text-center">Queue is empty. All caught up!</div>';
-        document.getElementById('trace-detail-container').innerHTML = '<div class="p-8 text-center text-gray-500">Queue is empty.</div>';
+        listEl.innerHTML = `
+          <div class="p-6 text-gray-400 text-center space-y-3">
+            <i class="fa-solid fa-circle-check text-green-500 text-3xl"></i>
+            <div class="font-bold text-xs text-gray-200">Queue is caught up!</div>
+            <div class="text-[11px] text-gray-500">No traces in this view.</div>
+            <div class="pt-2 flex flex-col space-y-2">
+              <button onclick="document.getElementById('queue-select').value='all'; currentTraceIdx=-1; loadTraces();" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-xs">View All Traces</button>
+              <button onclick="seedDemoTraces()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold">+ Inject Demo Traces</button>
+            </div>
+          </div>
+        `;
+        document.getElementById('trace-detail-container').innerHTML = '<div class="p-8 text-center text-gray-500">Queue is empty. Select another queue or click Inject Demo Traces.</div>';
         return;
       }
+      renderTraceList();
+      if (currentTraceIdx < 0 && activeTraces.length > 0) {
+        selectTrace(0);
+      }
+    }
+
+    function renderTraceList() {
+      const listEl = document.getElementById('trace-list');
       listEl.innerHTML = activeTraces.map((t, idx) => `
         <div onclick="selectTrace(${idx})" class="p-3 cursor-pointer hover:bg-gray-900 flex justify-between items-center ${idx === currentTraceIdx ? 'bg-gray-900 border-l-2 border-blue-500' : ''}">
           <div class="truncate pr-2">
@@ -627,15 +752,12 @@ def serve_console():
           </div>
         </div>
       `).join('');
-      if (currentTraceIdx < 0 && activeTraces.length > 0) {
-        selectTrace(0);
-      }
     }
 
     async function selectTrace(idx) {
       if (idx < 0 || idx >= activeTraces.length) return;
       currentTraceIdx = idx;
-      loadTraces();
+      renderTraceList();
       const t = activeTraces[idx];
       const res = await fetch(`/api/traces/${t.id}`);
       const detail = await res.json();
